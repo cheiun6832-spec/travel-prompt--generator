@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#557b62">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.svg" type="image/svg+xml">
+<title>旅遊示意圖提示詞產生器</title>
+<style>
+:root{--ink:#263238;--muted:#657477;--paper:#fffdf7;--line:#e7dfcf;--gold:#d99a22;--green:#557b62;--soft:#f5f0e4}
+*{box-sizing:border-box}body{margin:0;background:#f3f1eb;color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;line-height:1.55}
+.wrap{max-width:900px;margin:0 auto;padding:18px 14px 40px}.hero{background:linear-gradient(120deg,#fff7df,#e8f0df);border:1px solid #e6dcc2;border-radius:20px;padding:22px 20px;margin-bottom:16px}
+h1{font-size:clamp(23px,5vw,32px);margin:0 0 5px}.hero p{margin:0;color:#5d695d}.tag{display:inline-block;background:#e5eddc;color:#42624a;padding:4px 10px;border-radius:20px;font-size:13px;margin-bottom:10px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:17px;margin:13px 0;box-shadow:0 3px 12px #45351a0a}
+h2{font-size:18px;margin:0 0 13px;display:flex;align-items:center;gap:8px}.num{background:#f3e5c3;color:#805915;border-radius:50%;width:27px;height:27px;display:inline-grid;place-items:center;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.field{min-width:0}label{display:block;font-size:14px;font-weight:700;margin:0 0 5px}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid #d9d2c4;border-radius:10px;background:white;color:var(--ink);font:inherit;font-size:15px}
+textarea{min-height:78px;resize:vertical}.hint{font-size:12px;color:var(--muted);margin-top:4px}
+.choices{display:flex;flex-wrap:wrap;gap:8px}.choice{display:flex;align-items:center;gap:6px;border:1px solid #ded7c9;background:white;border-radius:10px;padding:8px 10px;font-size:14px}.choice input{width:auto;margin:0;accent-color:var(--green)}
+.stop{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin:8px 0;padding:10px;background:#faf7ef;border-radius:12px}.stop button{border:0;background:#f3e0dc;color:#93483c;border-radius:9px;padding:10px 12px}
+button{cursor:pointer;font:inherit}.btn{border:0;border-radius:11px;padding:11px 15px;font-weight:700}.add{background:#e7efdf;color:#3f6949}.primary{background:#426b50;color:white}.secondary{background:#eee8da;color:#514a3d}.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}
+.output{min-height:220px;background:#202b2a;color:#f7f5ed;border:0;font-size:14px;line-height:1.7}
+.checklist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.checklist label{font-weight:500;background:#faf7ef;padding:9px;border-radius:9px;margin:0}
+.small{font-size:13px;color:var(--muted)}.filebox{padding:12px;border:1px dashed #c9b98e;border-radius:12px;background:#fffaf0}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.stop{grid-template-columns:1fr 1fr}.stop button{grid-column:1/-1}.checklist{grid-template-columns:1fr}.wrap{padding:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero"><span class="tag">可點選・可修改・一鍵複製</span><h1>🗺️ 旅遊示意圖提示詞產生器</h1><p>把旅遊地點、照片、交通與行程填入，快速整理成可交給 AI 繪圖工具的完整指令。</p></header>
+
+<section class="card">
+<h2><span class="num">1</span>旅遊主題與基本資料</h2>
+<div class="grid">
+<div class="field"><label>旅遊地區／城市</label><input id="city" value="嘉義市區" placeholder="例如：台南市區、雙溪"></div>
+<div class="field"><label>行程名稱</label><input id="title" value="嘉義市區一日遊" placeholder="例如：山城慢遊一日行"></div>
+<div class="field"><label>副標題／特色</label><input id="subtitle" value="鐵道・美術・市場・檜木老屋" placeholder="用頓號分隔特色"></div>
+<div class="field"><label>行程時間</label><input id="duration" value="約 7.5 小時" placeholder="例如：約 6 小時"></div>
+<div class="field"><label>畫面比例</label><select id="ratio"><option>9:16 直式</option><option selected>3:4 直式</option><option>4:5 直式</option><option>4:3 橫式</option><option>16:9 橫式</option><option>1:1 正方形</option></select></div>
+<div class="field"><label>圖像風格</label><select id="style"><option selected>手繪水彩繪本風、溫暖復古紙感</option><option>3D Q版立體插畫風</option><option>清新扁平向量插畫風</option><option>日系旅行手帳插畫風</option><option>精緻等角立體地圖風</option><option>復古旅遊海報風</option></select></div>
+</div>
+</section>
+
+<section class="card">
+<h2><span class="num">2</span>景點路線（可自行增減）</h2>
+<div id="stops">
+<div class="stop"><div><label>景點／站點 1</label><input class="place" value="嘉義車站"></div><div><label>預計時間</label><input class="time" value="09:00"></div><button type="button" onclick="removeStop(this)">移除</button></div>
+<div class="stop"><div><label>景點／站點 2</label><input class="place" value="嘉義市立美術館"></div><div><label>預計時間</label><input class="time" value="09:10"></div><button type="button" onclick="removeStop(this)">移除</button></div>
+<div class="stop"><div><label>景點／站點 3</label><input class="place" value="中央噴水池"></div><div><label>預計時間</label><input class="time" value="10:30"></div><button type="button" onclick="removeStop(this)">移除</button></div>
+<div class="stop"><div><label>景點／站點 4</label><input class="place" value="東市場午餐"></div><div><label>預計時間</label><input class="time" value="11:00"></div><button type="button" onclick="removeStop(this)">移除</button></div>
+<div class="stop"><div><label>景點／站點 5</label><input class="place" value="檜意森活村"></div><div><label>預計時間</label><input class="time" value="13:00"></div><button type="button" onclick="removeStop(this)">移除</button></div>
+<div class="stop"><div><label>景點／站點 6</label><input class="place" value="北門車站"></div><div><label>預計時間</label><input class="time" value="14:30"></div><button type="button" onclick="removeStop(this)">移除</button></div>
+<div class="stop"><div><label>景點／站點 7</label><input class="place" value="嘉義車庫園區"></div><div><label>預計時間</label><input class="time" value="15:00"></div><button type="button" onclick="removeStop(this)">移除</button></div>
+</div>
+<button class="btn add" type="button" onclick="addStop()">＋ 新增景點</button>
+<p class="hint">建議依照實際行走順序排列；時間可填抵達時間或停留時間。</p>
+</section>
+
+<section class="card">
+<h2><span class="num">3</span>交通與路線呈現</h2>
+<div class="grid">
+<div class="field"><label>主要交通方式</label><select id="transport"><option>步行＋公車</option><option>全程步行</option><option>火車＋步行</option><option>自行開車</option><option>機車</option><option>自行車</option><option>包車／接駁</option><option>混合交通方式</option></select></div>
+<div class="field"><label>路線方向</label><select id="direction"><option>由上而下，依序串連景點</option><option>由左至右，依序串連景點</option><option>環狀路線，最後返回起點</option><option>依地理位置呈現，不強制直線</option></select></div>
+<div class="field"><label>交通補充說明</label><input id="transportNote" value="台灣好行 0715 光林我嘉線 → 嘉義車站" placeholder="公車路線、班次、上下車站"></div>
+<div class="field"><label>路線符號</label><select id="routeLook"><option>黃色主幹線＋虛線支線＋箭頭</option><option>紅色路線＋圓點站標</option><option>手繪虛線＋腳印</option><option>依交通方式搭配不同線條</option></select></div>
+</div>
+</section>
+
+<section class="card">
+<h2><span class="num">4</span>需要準備的素材</h2>
+<div class="checklist">
+<label><input type="checkbox" checked> 景點實景照片（每個景點 1～3 張）</label>
+<label><input type="checkbox" checked> 景點正確名稱與地址</label>
+<label><input type="checkbox" checked> 景點先後順序與停留時間</label>
+<label><input type="checkbox"> 交通路線／公車或火車資訊</label>
+<label><input type="checkbox"> 餐飲、特色小吃照片</label>
+<label><input type="checkbox"> 角色照片或 IP 設定圖</label>
+<label><input type="checkbox"> 地圖截圖或路線參考圖</label>
+<label><input type="checkbox"> 想放入的標題、標語與署名</label>
+</div>
+<div class="filebox" style="margin-top:12px">
+<label for="photos">選取參考照片（此介面僅協助整理素材，不會自動上傳到 AI）</label>
+<input id="photos" type="file" accept="image/*" multiple>
+<div class="small" id="fileCount">尚未選取照片</div>
+</div>
+<p class="hint">重要：若要讓景點建築外觀更接近真實，請提供清楚的實景照片；若要路線正確，請另外核對地圖與交通資料。AI 繪圖可能會把中文字、站名或地理位置畫錯。</p>
+</section>
+
+<section class="card">
+<h2><span class="num">5</span>版面與文字設定</h2>
+<div class="grid">
+<div class="field"><label>主視覺人物／角色</label><select id="character"><option>不放人物，只呈現景點</option><option>放入我的 IP 春仔（3D Q版男孩）</option><option>放入旅遊者 Q版人物</option><option>放入春仔 × AI仔</option><option>依參考照片自動安排</option></select></div>
+<div class="field"><label>底部資訊</label><select id="footer"><option>行程時間表＋交通資訊＋署名</option><option>簡易行程時間表</option><option>交通資訊＋注意事項</option><option>不需要底部資訊</option></select></div>
+<div class="field"><label>中文字體感覺</label><select id="font"><option>粗黑體標題＋清楚易讀繁體中文字</option><option>手寫標題＋清楚易讀內文</option><option>圓潤可愛字體＋清楚易讀內文</option></select></div>
+<div class="field"><label>署名／作者</label><input id="credit" value="春仔的旅遊紀錄" placeholder="例如：作者名稱／社群名稱"></div>
+</div>
+<div class="field" style="margin-top:12px"><label>其他指定事項</label><textarea id="extra" placeholder="例如：不要簡體字、不要浮水印、每個景點要有獨立插畫、保留充足留白……">全程使用臺灣繁體中文，字體清晰、文字正確，不要簡體字、錯別字、亂碼或浮水印。建築與景點依照片呈現，不要任意杜撰。</textarea></div>
+</section>
+
+<section class="card">
+<h2><span class="num">6</span>產生可複製的 AI 繪圖指令</h2>
+<textarea id="output" class="output" readonly placeholder="按下「產生提示詞」後，完整指令會顯示在這裡。"></textarea>
+<div class="actions">
+<button class="btn primary" type="button" onclick="generate()">✨ 產生提示詞</button>
+<button class="btn secondary" type="button" onclick="copyPrompt()">📋 複製提示詞</button>
+<button class="btn secondary" type="button" onclick="resetForm()">↺ 恢復範例資料</button>
+</div>
+<p class="small" id="status" aria-live="polite">完成後，將提示詞連同景點照片一起交給支援圖片參考的 AI 繪圖工具。</p>
+</section>
+</div>
+<script>
+const initialStops=[["嘉義車站","09:00"],["嘉義市立美術館","09:10"],["中央噴水池","10:30"],["東市場午餐","11:00"],["檜意森活村","13:00"],["北門車站","14:30"],["嘉義車庫園區","15:00"]];
+function addStop(name="",time=""){const d=document.createElement("div");d.className="stop";d.innerHTML=`<div><label>景點／站點</label><input class="place" placeholder="輸入景點名稱"></div><div><label>預計時間</label><input class="time" placeholder="例如：16:00"></div><button type="button" onclick="removeStop(this)">移除</button>`;d.querySelector(".place").value=name;d.querySelector(".time").value=time;document.getElementById("stops").appendChild(d)}
+function removeStop(btn){if(document.querySelectorAll(".stop").length<=1){alert("至少保留一個景點。");return}btn.parentElement.remove()}
+function val(id){return document.getElementById(id).value.trim()}
+function generate(){
+ const stops=[...document.querySelectorAll(".stop")].map((s,i)=>({p:s.querySelector(".place").value.trim(),t:s.querySelector(".time").value.trim()})).filter(x=>x.p);
+ if(!stops.length){alert("請至少填寫一個景點。");return}
+ const route=stops.map((s,i)=>`${i+1}. ${s.t?s.t+"｜":""}${s.p}`).join("\n");
+ const prompt=`請根據我提供的旅遊資料與參考照片，製作一張高品質的「旅遊路線示意資訊圖」。
+
+【主題】
+地區：${val("city")}
+主標題：${val("title")}
+副標題：${val("subtitle")}
+行程時間：${val("duration")}
+
+【景點順序與時間】
+${route}
+
+【交通與路線】
+主要交通：${val("transport")}
+交通補充：${val("transportNote")}
+路線呈現：${val("direction")}
+線條樣式：${val("routeLook")}
+請讓路線編排清楚，景點順序與箭頭方向一致，不可漏掉或自行增加景點。
+
+【視覺設計】
+畫面比例：${val("ratio")}
+插畫風格：${val("style")}
+人物安排：${val("character")}
+版面：上方安排主標題與主視覺；中段以清楚的路線軸串連各景點，每個景點搭配獨立、易辨識的建築或環境插畫；底部安排「${val("footer")}」。
+字體：${val("font")}
+署名：${val("credit")}
+
+【文字與準確性】
+所有文字使用臺灣繁體中文，字形正確、清晰易讀，不可出現簡體字、錯別字、亂碼或自行編造的站名。
+景點外觀以我提供的實景照片為依據；不要把不同景點畫成同一棟建築。若無法確認細節，採用簡潔、保守的示意插畫，不要杜撰地標。
+地理位置與實際路線可能有差異時，以我提供並核實的路線資料為準。不要為了版面美觀而改變景點順序。
+${val("extra")}
+
+【輸出要求】
+構圖完整、資訊層次分明、色彩協調、細節精緻，適合手機閱讀與社群分享。請勿添加未提供的日期、票價、營業時間或交通班次。`;
+ document.getElementById("output").value=prompt;
+ document.getElementById("status").textContent="提示詞已產生。請複製後，搭配所選取的景點照片一併提供給 AI。";
+}
+async function copyPrompt(){const t=document.getElementById("output").value;if(!t){generate()}const x=document.getElementById("output").value;if(!x)return;try{await navigator.clipboard.writeText(x);document.getElementById("status").textContent="已複製！可直接貼到 AI 繪圖工具。"}catch(e){document.getElementById("output").select();document.execCommand("copy");document.getElementById("status").textContent="已選取提示詞；若未自動複製，請長按文字選取複製。"}}
+function resetForm(){if(!confirm("要將欄位恢復成嘉義一日遊範例嗎？"))return;document.getElementById("city").value="嘉義市區";document.getElementById("title").value="嘉義市區一日遊";document.getElementById("subtitle").value="鐵道・美術・市場・檜木老屋";document.getElementById("duration").value="約 7.5 小時";document.getElementById("ratio").value="3:4 直式";document.getElementById("style").selectedIndex=0;document.getElementById("stops").innerHTML="";initialStops.forEach(x=>addStop(...x));document.getElementById("transport").selectedIndex=0;document.getElementById("direction").selectedIndex=0;document.getElementById("transportNote").value="台灣好行 0715 光林我嘉線 → 嘉義車站";document.getElementById("routeLook").selectedIndex=0;document.getElementById("character").selectedIndex=0;document.getElementById("footer").selectedIndex=0;document.getElementById("font").selectedIndex=0;document.getElementById("credit").value="春仔的旅遊紀錄";document.getElementById("extra").value="全程使用臺灣繁體中文，字體清晰、文字正確，不要簡體字、錯別字、亂碼或浮水印。建築與景點依照片呈現，不要任意杜撰。";document.getElementById("output").value="";document.getElementById("photos").value="";document.getElementById("fileCount").textContent="尚未選取照片";document.getElementById("status").textContent="已恢復範例資料。"}
+document.getElementById("photos").addEventListener("change",e=>{const n=e.target.files.length;document.getElementById("fileCount").textContent=n?`已選取 ${n} 張照片（請在使用 AI 時一併上傳）`:"尚未選取照片"});
+</script>
+<script>if("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));}</script>
+</body></html>
